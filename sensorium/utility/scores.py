@@ -20,6 +20,7 @@ def split_images(responses, image_ids):
         list: responses or predictios split across images. [n_images] np.array(n_repeats, n_neurons)
     """
 
+    image_ids = np.array(image_ids)
     per_image_repeats = []
     for image_id in np.unique(image_ids):
         responses_across_repeats = responses[image_ids == image_id]

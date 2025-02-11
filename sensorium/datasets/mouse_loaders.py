@@ -219,7 +219,7 @@ def static_loader(
         frame_image_id = dat_info.frame_image_id
         image_class = dat_info.frame_image_class
     elif "frame2_image_id" in dir(dat_info):
-        frame_image_id = dat_info.frame2_image_id
+        frame_image_id = dat_info.condition_hash # We actually use condition_hash instead of frame2_image_id
         image_class = dat_info.frame2_image_class
     else:
         raise ValueError(
