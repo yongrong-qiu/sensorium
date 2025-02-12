@@ -148,7 +148,7 @@ def get_signal_correlations(
     return correlations if per_neuron else correlations.mean()
 
 
-def get_fev(model, dataloaders, tier, device="cpu", per_neuron=True, fev_threshold=0.15, as_dict=False):
+def get_fev(model, dataloaders, tier, device="cpu", per_neuron=True, fev_threshold=0.15, as_dict=False, only_return_feve=True):
     """
     Compute the fraction of explainable variance explained per neuron.
 
@@ -159,10 +159,12 @@ def get_fev(model, dataloaders, tier, device="cpu", per_neuron=True, fev_thresho
         device (str, optional): device to compute on. Defaults to "cpu".
         per_neuron (bool, optional): whether to return the results per neuron or averaged across neurons. Defaults to True.
         fev_threshold (float): the FEV threshold under which a neuron will not be ignored.
+        only_return_feve (bool, optional): whether only return the FEVE values
 
     Returns:
         np.ndarray: the fraction of explainable variance explained.
     """
+    fevs = {}
     feves = {}
     for data_key, dataloader in dataloaders[tier].items():
         trial_indices, image_ids, neuron_ids, responses = get_data_filetree_loader(
@@ -179,17 +181,28 @@ def get_fev(model, dataloaders, tier, device="cpu", per_neuron=True, fev_thresho
 
         # ignore neurons below FEV threshold
         feve_val = feve_val[fev_val >= fev_threshold]
-
         feves[data_key] = feve_val
+        fev_val = fev_val[fev_val >= fev_threshold]
+        fevs[data_key] = fev_val
 
     if not as_dict:
+        fevs = (
+            np.hstack([v for v in fevs.values()])
+            if per_neuron
+            else np.mean(np.hstack([v for v in fevs.values()]))
+        )
         feves = (
             np.hstack([v for v in feves.values()])
             if per_neuron
             else np.mean(np.hstack([v for v in feves.values()]))
         )
 
-    return feves if per_neuron else feves.mean()
+    if only_return_feve:
+        result = feves if per_neuron else feves.mean()
+    else:
+        result = (fevs if per_neuron else fevs.mean(), feves if per_neuron else feves.mean())
+
+    return result
 
 
 def get_poisson_loss(
