@@ -129,7 +129,7 @@ def static_loader(
 
     # The permutation MUST be added first and the conditions below MUST NOT be based on the original order
     # specify condition(s) for sampling neurons. If you want to sample specific neurons define conditions that would effect idx
-    conds = np.ones(len(dat.neurons.area), dtype=bool)
+    conds = np.ones(len(dat.neurons.cell_motor_coordinates), dtype=bool)
     if areas is not None:
         conds &= np.isin(dat.neurons.area, areas)
     if layers is not None:
