@@ -1,5 +1,6 @@
 import warnings
 import numpy as np
+import matplotlib.pyplot as plt
 import torch
 
 from neuralpredictors.measures.np_functions import corr, fev
@@ -232,3 +233,134 @@ def get_poisson_loss(
                 if avg
                 else np.sum(np.hstack([v for v in poisson_loss.values()]))
             )
+
+
+class GaborFilterGenerator:
+    """
+    A class to generate and visualize 2D Gabor filters.
+    """
+    
+    def __init__(self, width=64, height=36, frequency=0.1, theta=0, sigma_x=5, gamma=1.0, phase=0, x0=0, y0=0, contrast=2.95):
+        """
+        Initializes the Gabor filter parameters.
+        
+        Args:
+            width (int): Width of the filter.
+            height (int): Height of the filter.
+            frequency (float): Frequency of the sinusoidal component, i.e., the spatial frequency (cycles per unit distance)
+            theta (float): Orientation of the filter in radians.
+            sigma_x (float): Standard deviation of the Gaussian envelope along x-axis.
+            # sigma_y (float): Standard deviation of the Gaussian envelope along y-axis.
+            gamma (float): Spatial aspect ratio
+            phase (float): Phase offset of the sinusoidal component.
+            x0 (int): x-coordinate of the center.
+            y0 (int): y-coordinate of the center.
+            contrast: contrast of the Gabor filter, here refers to the maximum pixel values
+
+        Example use case:
+            gabor_filter_generator = GaborFilterGenerator(frequency=0.2, theta=np.pi, gamma=1, phase=np.pi, x0=10, y0=24)  
+            gabor = gabor_filter_generator.generate()
+            gabor_filter_generator.plot(gabor)
+        """
+        self.width = width
+        self.height = height
+        self.frequency = frequency
+        self.theta = theta
+        self.sigma_x = sigma_x
+        # self.sigma_y = sigma_y
+        self.sigma_y = sigma_x/gamma
+        self.phase = phase
+        self.x0 = x0
+        self.y0 = y0
+        self.contrast = contrast
+
+    def generate(self):
+        """
+        Generates the 2D Gabor filter.
+        
+        Returns:
+            numpy.ndarray: The computed Gabor filter.
+        """
+        x = np.arange(0, self.width)  
+        y = np.arange(0, self.height)
+        X, Y = np.meshgrid(x, y)
+        
+        # Rotate the coordinate system based on theta
+        x_prime =  (X - self.x0) * np.cos(self.theta) + (Y - self.y0) * np.sin(self.theta)
+        y_prime = -(X - self.x0) * np.sin(self.theta) + (Y - self.y0) * np.cos(self.theta)
+        
+        # Compute the Gaussian envelope
+        gaussian = np.exp(-((x_prime) ** 2 / (2 * self.sigma_x ** 2) + (y_prime) ** 2 / (2 * self.sigma_y ** 2)))
+        
+        # Compute the sinusoidal wave
+        sinusoid = np.cos(2 * np.pi * self.frequency * (x_prime) + self.phase)
+        
+        return gaussian * sinusoid * self.contrast
+
+    def plot(self, gabor):
+        """
+        Plots the generated Gabor filter.
+        """
+        plt.imshow(gabor, cmap='gray')
+        plt.colorbar()
+        plt.title("Gabor Filter")
+
+
+
+
+class StaticGratingGenerator:
+    """
+    A class to generate and visualize 2D static gratings.
+    """
+    
+    def __init__(self, width=64, height=36, frequency=0.1, theta=0, phase=0, contrast=2.95):
+        """
+        Initializes the grating parameters.
+        
+        Args:
+            width (int): Width of the grating.
+            height (int): Height of the grating.
+            frequency (float): Spatial frequency of the grating (cycles per unit distance).
+            theta (float): Orientation of the grating in radians.
+            phase (float): Phase offset of the sinusoidal wave.
+            contrast: contrast of the Gabor filter, here refers to the maximum pixel values
+
+        Example use case:
+            static_grating_generator = StaticGratingGenerator(frequency=0.05, theta=np.pi/6, phase=np.pi)  
+            grating = static_grating_generator.generate()
+            static_grating_generator.plot(grating)
+        """
+        self.width = width
+        self.height = height
+        self.frequency = frequency
+        self.theta = theta
+        self.phase = phase
+        self.contrast = contrast
+
+    def generate(self):
+        """
+        Generates the 2D static grating.
+        
+        Returns:
+            numpy.ndarray: The computed grating pattern.
+        """
+        x = np.arange(self.width)  
+        y = np.arange(self.height)
+        X, Y = np.meshgrid(x, y)
+        
+        # Rotate the coordinate system based on theta
+        x_prime = X * np.cos(self.theta) + Y * np.sin(self.theta)
+        
+        # Compute the sinusoidal grating
+        grating = np.cos(2 * np.pi * self.frequency * x_prime + self.phase)
+        
+        return grating * self.contrast
+
+    def plot(self, grating):
+        """
+        Plots the generated static grating.
+        """
+        plt.imshow(grating, cmap='gray')
+        plt.colorbar()
+        plt.title("Static Grating")
+
