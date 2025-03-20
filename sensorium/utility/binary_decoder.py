@@ -10,24 +10,29 @@ class BinaryDecoder(nn.Module):
     """
     Binary decoding model with dynamically created linear layers based on input_dim and latent_dims_list.
     """
-    def __init__(self, input_dim=6611, latent_dims_list=[100, 100]):
+    def __init__(self, input_dim=6611, latent_dims_list=[100, 100], linear_flag=False):
         super().__init__()
-        
+
         # Create a list to hold all the layers
         self.layers = nn.ModuleList()
         
-        # Add the first layer (input_dim -> first latent dimension)
-        self.layers.append(nn.Linear(input_dim, latent_dims_list[0]))
-        self.layers.append(nn.ReLU())
-        
-        # Add intermediate layers (latent_dim[i] -> latent_dim[i+1])
-        if len(latent_dims_list)>1:
-            for ii in range(len(latent_dims_list) - 1):
-                self.layers.append(nn.Linear(latent_dims_list[ii], latent_dims_list[ii+1]))
-                self.layers.append(nn.ReLU())
-        
-        # Add the final output layer (last latent dimension -> 1)
-        self.layers.append(nn.Linear(latent_dims_list[-1], 1))
+        if len(latent_dims_list)>0:
+            # Add the first layer (input_dim -> first latent dimension)
+            self.layers.append(nn.Linear(input_dim, latent_dims_list[0]))
+            self.layers.append(nn.ReLU()) if not linear_flag else self.layers.append(nn.Identity())
+            
+            # Add intermediate layers (latent_dim[i] -> latent_dim[i+1])
+            if len(latent_dims_list)>1:
+                for ii in range(len(latent_dims_list) - 1):
+                    self.layers.append(nn.Linear(latent_dims_list[ii], latent_dims_list[ii+1]))
+                    self.layers.append(nn.ReLU()) if not linear_flag else self.layers.append(nn.Identity())
+            
+            # Add the final output layer (last latent dimension -> 1)
+            self.layers.append(nn.Linear(latent_dims_list[-1], 1))
+
+        else: # no hidden layer
+            self.layers.append(nn.Linear(input_dim, 1))
+
         self.layers.append(nn.Sigmoid())
     
     def forward(self, x):
