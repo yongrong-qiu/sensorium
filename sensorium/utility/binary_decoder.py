@@ -47,6 +47,7 @@ def model_train(
     n_epochs=200, # # number of epochs to run
     batch_size=10,  # size of each batch
     lr=0.0001, # learning rate
+    verbose=False, # not display the progress
 ):
     """
     Model training
@@ -62,10 +63,11 @@ def model_train(
     # Hold the best model
     best_acc = - np.inf   # init to negative infinity
     best_weights = None
+    acc_vals = []
  
     for epoch in range(n_epochs):
         model.train()
-        with tqdm.tqdm(batch_start, unit="batch", mininterval=0, disable=True) as bar:
+        with tqdm.tqdm(batch_start, unit="batch", mininterval=0, disable=not verbose) as bar:
             bar.set_description(f"Epoch {epoch}")
             for start in bar:
                 # take a batch
@@ -80,21 +82,21 @@ def model_train(
                 # update weights
                 optimizer.step()
                 # print progress
-                acc = (y_pred.round() == y_batch).float().mean().detach().cpu().data.numpy()
-                bar.set_postfix(
-                    loss=float(loss).detach().cpu().data.numpy(),
-                    acc=float(acc).detach().cpu().data.numpy()
-                )
+                # acc = (y_pred.round() == y_batch).float().mean().detach().cpu().data.numpy()
+                # bar.set_postfix(
+                #     loss=float(loss).detach().cpu().data.numpy(),
+                #     acc=acc
+                # )
         # evaluate accuracy at end of each epoch
         model.eval()
         X_val = X_val.float().to(device)
         y_val = y_val.float().to(device)
         y_pred = model(X_val)
-        acc = (y_pred.round() == y_val).float().mean()
-        acc = float(acc).detach().cpu().data.numpy()
+        acc = (y_pred.round() == y_val).float().mean().detach().cpu().data.numpy()
+        acc_vals.append(acc)
         if acc > best_acc:
             best_acc = acc
             best_weights = copy.deepcopy(model.state_dict())
     # restore model and return best accuracy
     model.load_state_dict(best_weights)
-    return best_acc, best_weights
+    return best_acc, best_weights, acc_vals
