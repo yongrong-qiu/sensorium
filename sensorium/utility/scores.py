@@ -2,6 +2,7 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
+from scipy.stats import entropy
 
 from neuralpredictors.measures.np_functions import corr, fev
 from neuralpredictors.training import eval_state, device_state
@@ -306,8 +307,6 @@ class GaborFilterGenerator:
         plt.title("Gabor Filter")
 
 
-
-
 class StaticGratingGenerator:
     """
     A class to generate and visualize 2D static gratings.
@@ -364,3 +363,20 @@ class StaticGratingGenerator:
         plt.colorbar()
         plt.title("Static Grating")
 
+
+
+def JSD(x,y,bins):
+    """
+    Function: jensen-shannon distance between 1d-array x and y
+    0 means exactly the same, 1 means totally different
+
+    Adapted from:  https://github.com/yongrong-qiu/mouse-scene-cam/blob/64cfd34e07dc57e2a6147bf1958e5073482c64ff/code/contrast.py#L253
+    """
+    data_max=np.max(np.hstack((x,y))) 
+    data_min=np.min(np.hstack((x,y)))
+    c_x = np.histogram(x,bins,range=[data_min,data_max])[0]
+    c_y = np.histogram(y,bins,range=[data_min,data_max])[0]
+    c_x = c_x/np.linalg.norm(c_x, ord=1)
+    c_y = c_y/np.linalg.norm(c_y, ord=1)
+    c_z = 0.5*(c_x+c_y)
+    return 0.5 * (entropy(c_x, c_z, base=2) + entropy(c_y, c_z, base=2))
