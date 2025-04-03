@@ -6,6 +6,59 @@ import tqdm
 import copy
     
 
+def data_prep_for_decoder(aut, con, train_num_single_mouse, valid_num_single_mouse):
+    """
+    Data preprocessing for binary decoder.
+    Args:
+        aut: 2D numpy array with a shape of (num_of_neurons, num_of_features), for "autistic" mouse
+        con: similar to "aut", but for "control" mouse
+    Return:
+        Pytorch tensor for training models
+        
+    """
+    temp1 = aut[:train_num_single_mouse, :]
+    temp2 = con[:train_num_single_mouse, :]
+    train_input = np.concatenate((temp1, temp2), axis=0)
+    train_label = np.concatenate((np.ones(temp1.shape[0]), np.zeros(temp2.shape[0])), axis=0)
+    temp1 = aut[train_num_single_mouse:train_num_single_mouse+valid_num_single_mouse, :]
+    temp2 = con[train_num_single_mouse:train_num_single_mouse+valid_num_single_mouse, :]
+    valid_input = np.concatenate((temp1, temp2), axis=0)
+    valid_label = np.concatenate((np.ones(temp1.shape[0]), np.zeros(temp2.shape[0])), axis=0)
+    temp1 = aut[train_num_single_mouse+valid_num_single_mouse:, :]
+    temp2 = con[train_num_single_mouse+valid_num_single_mouse:, :]
+    test_input = np.concatenate((temp1, temp2), axis=0)
+    test_label = np.concatenate((np.ones(temp1.shape[0]), np.zeros(temp2.shape[0])), axis=0)
+    
+    # shuffle the data to mix MECP and littermate
+    np.random.seed(100)
+    image_indice = np.random.choice(train_input.shape[0], train_input.shape[0], replace=False)
+    train_input = train_input[image_indice, :]
+    train_label = train_label[image_indice, ]
+    np.random.seed(101)
+    image_indice = np.random.choice(valid_input.shape[0], valid_input.shape[0], replace=False)
+    valid_input = valid_input[image_indice, :]
+    valid_label = valid_label[image_indice, ]
+    np.random.seed(102)
+    image_indice = np.random.choice(test_input.shape[0], test_input.shape[0], replace=False)
+    test_input = test_input[image_indice, :]
+    test_label = test_label[image_indice, ]
+    
+    # numpy to torch
+    train_input = torch.from_numpy(train_input).float()
+    train_label = torch.from_numpy(train_label).float().reshape(-1, 1)
+    valid_input = torch.from_numpy(valid_input).float()
+    valid_label = torch.from_numpy(valid_label).float().reshape(-1, 1)
+    test_input = torch.from_numpy(test_input).float()
+    test_label = torch.from_numpy(test_label).float().reshape(-1, 1)
+    
+    # normalize input
+    train_input_std = torch.std(train_input, dim=0, keepdim=True)
+    train_input = train_input/train_input_std
+    valid_input = valid_input/train_input_std
+    test_input = test_input/train_input_std
+
+    return train_input, valid_input, test_input, train_label, valid_label, test_label
+
 class BinaryDecoder(nn.Module):
     """
     Binary decoding model with dynamically created linear layers based on input_dim and latent_dims_list.
