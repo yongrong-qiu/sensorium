@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 from scipy.stats import entropy
+from sklearn.decomposition import PCA
 
 from neuralpredictors.measures.np_functions import corr, fev
 from neuralpredictors.training import eval_state, device_state
@@ -364,7 +365,6 @@ class StaticGratingGenerator:
         plt.title("Static Grating")
 
 
-
 def JSD(x,y,bins):
     """
     Function: jensen-shannon distance between 1d-array x and y
@@ -380,3 +380,25 @@ def JSD(x,y,bins):
     c_y = c_y/np.linalg.norm(c_y, ord=1)
     c_z = 0.5*(c_x+c_y)
     return 0.5 * (entropy(c_x, c_z, base=2) + entropy(c_y, c_z, base=2))
+
+def pca_on_data_split(responses_train, responses_val, n_components=2):
+    """
+    Use the responses_train data to train a PCA model, and apply the model to the responses_val data
+    Args:
+        responses_train: 2D numpy array, shape: (num_of_samples, num_of_neurons), 
+                         the pca would be applied on the second axis (features),
+                         this is for training the PCA     
+        responses_val: 2D numpy array, shape: (num_of_samples2, num_of_neurons)             
+    Return:
+        responses_val_pca: 2D numpy array, shape: (num_of_samples2, n_components)       
+    """
+    # print (f'responses_train.shape: {responses_train.shape}') # shape: S X N
+    responses_train_mean = np.mean(responses_train, axis=0, keepdims=True)
+    responses_train_centered = responses_train - responses_train_mean
+    pca = PCA(n_components=n_components)
+    pca.fit(responses_train_centered)
+
+    # print (f'responses_val.shape: {responses_val.shape}') # shape: S X N
+    responses_val_centered = responses_val - responses_train_mean
+    responses_val_pca = pca.transform(responses_val_centered)
+    return responses_val_pca
