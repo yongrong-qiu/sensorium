@@ -199,7 +199,7 @@ def static_loader(
     elif "ColorImageNet" in path:
         data_key = path.split("static")[-1].split("-ColorImageNet")[0]
     elif "GrayImageNet" in path:
-        data_key = path.split("static")[-1].split("-GrayImageNet")[0]
+        data_key = f"{dat.neurons.animal_ids[0]}-{dat.neurons.sessions[0]}-{dat.neurons.scan_idx[0]}"
     else:
         data_key = f"{dat.neurons.animal_ids[0]}-{dat.neurons.sessions[0]}-{dat.neurons.scan_idx[0]}"
 
@@ -216,7 +216,7 @@ def static_loader(
         frame_image_id = dat_info.colorframeprojector_image_id
         image_class = dat_info.colorframeprojector_image_class
     elif "frame_image_id" in dir(dat_info):
-        frame_image_id = dat_info.frame_image_id
+        frame_image_id = dat_info.condition_hash # We actually use condition_hash instead of frame_image_id
         image_class = dat_info.frame_image_class
     elif "frame2_image_id" in dir(dat_info):
         frame_image_id = dat_info.condition_hash # We actually use condition_hash instead of frame2_image_id
