@@ -472,3 +472,40 @@ def match_units_mnn(
     })
 
     return matches
+
+def add_correlation_columns(matches, correlation_to_average, unit_ids_dict):
+    """
+    Add correlation columns to matches DataFrame.
+    Parameters
+    ----------
+    matches : pd.DataFrame
+        Must contain: unit_id_1, unit_id_2, data_key_1, data_key_2
+    correlation_to_average : dict
+        {data_key: array of correlations}
+    unit_ids_dict : dict
+        {data_key: array of unit_ids corresponding to correlations}
+
+    Returns
+    -------
+    matches : pd.DataFrame (updated)
+    """
+
+    # build lookup: (data_key, unit_id) -> correlation
+    lookup = {}
+    for key in correlation_to_average:
+        corrs = correlation_to_average[key]
+        unit_ids = unit_ids_dict[key]
+        for uid, c in zip(unit_ids, corrs):
+            lookup[(key, uid)] = c
+    # map for scan 1
+    matches["cor_to_avg_1"] = [
+        lookup.get((dk, uid), None)
+        for dk, uid in zip(matches["data_key_1"], matches["unit_id_1"])
+    ]
+    # map for scan 2
+    matches["cor_to_avg_2"] = [
+        lookup.get((dk, uid), None)
+        for dk, uid in zip(matches["data_key_2"], matches["unit_id_2"])
+    ]
+
+    return matches
