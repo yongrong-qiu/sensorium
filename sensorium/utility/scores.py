@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import torch
 from scipy.stats import entropy
 from sklearn.decomposition import PCA
+import pandas as pd
+from scipy.spatial import KDTree
 
 from neuralpredictors.measures.np_functions import corr, fev
 from neuralpredictors.training import eval_state, device_state
@@ -402,3 +404,71 @@ def pca_on_data_split(responses_train, responses_val, n_components=2):
     responses_val_centered = responses_val - responses_train_mean
     responses_val_pca = pca.transform(responses_val_centered)
     return responses_val_pca
+
+def match_units_mnn(
+    csv_path,
+    scan1=(33328, 6, 2), 
+    scan2=(33328, 7, 1), 
+    max_distance=5.0,
+):
+    """
+    Match units between two scans based on 3D spatial distance.
+    Parameters
+    ----------
+    csv_path : str
+        Path to unit.csv
+    scan1, scan2 : tuple
+        (animal_id, session_id, scan_id)
+    max_distance : float
+        Maximum allowed distance for matching
+    Returns
+    -------
+    matches : pd.DataFrame
+        Columns:
+        unit_id_1, unit_id_2, distance
+    Eg:
+    matches = match_units_mnn(csv_path, scan1=(33328, 6, 2), scan2=(33328, 7, 1),)
+    print(matches.dtypes)
+    matches["distance"].hist(bins=50)
+    """
+    df = pd.read_csv(csv_path)
+    # filter two scans
+    df1 = df[
+        (df["animal_id"] == scan1[0]) &
+        (df["session_id"] == scan1[1]) &
+        (df["scan_id"] == scan1[2])
+    ].reset_index(drop=True)
+    df2 = df[
+        (df["animal_id"] == scan2[0]) &
+        (df["session_id"] == scan2[1]) &
+        (df["scan_id"] == scan2[2])
+    ].reset_index(drop=True)
+    coords1 = df1[["stack_x", "stack_y", "stack_z"]].values
+    coords2 = df2[["stack_x", "stack_y", "stack_z"]].values
+    # build trees
+    tree1 = KDTree(coords1)
+    tree2 = KDTree(coords2)
+    # nearest neighbors
+    dist12, idx12 = tree2.query(coords1, k=1)  # 1 -> 2
+    dist21, idx21 = tree1.query(coords2, k=1)  # 2 -> 1
+
+    matches = []
+    for i, j in enumerate(idx12):
+        # mutual nearest neighbor condition
+        if idx21[j] == i:
+            d = dist12[i]
+            if d <= max_distance:
+                matches.append({
+                    "unit_id_1": df1.loc[i, "unit_id"],
+                    "unit_id_2": df2.loc[j, "unit_id"],
+                    "distance": d,
+                    "data_key_1": f"{scan1[0]}-{scan1[1]}-{scan1[2]}",
+                    "data_key_2": f"{scan2[0]}-{scan2[1]}-{scan2[2]}"
+                })
+    matches = pd.DataFrame(matches)
+    matches = matches.astype({
+        "data_key_1": "string",
+        "data_key_2": "string"
+    })
+
+    return matches
