@@ -153,6 +153,7 @@ def standard_trainer(
         tracker = None
 
     # train over epochs
+    output = []
     for epoch, val_obj in early_stopping(
         model,
         stop_closure,
@@ -201,6 +202,13 @@ def standard_trainer(
                 optimizer.step()
                 optimizer.zero_grad()
 
+        # each epoch
+        model.eval()
+        # Compute avg validation and test correlation
+        validation_corr = get_correlations(
+            model, dataloaders["validation"], device=device, as_dict=False, per_neuron=False )
+        output.append(validation_corr)
+
     ##### Model evaluation ####################################################################################################
     model.eval()
     tracker.finalize() if track_training else None
@@ -211,8 +219,9 @@ def standard_trainer(
     )
 
     # return the whole tracker output as a dict
-    output = {k: v for k, v in tracker.log.items()} if track_training else {}
-    output["validation_corr"] = validation_correlation
+    # output = {k: v for k, v in tracker.log.items()} if track_training else {}
+    # output["validation_corr"] = validation_correlation
+    output = np.array(output)
 
     score = np.mean(validation_correlation)
 
